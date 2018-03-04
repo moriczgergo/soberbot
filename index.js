@@ -15,7 +15,7 @@ if (!process.env.SOBER_ID || !process.env.SOBER_SECRET || !process.env.SOBER_POR
 var config = {
     clientId: process.env.SOBER_ID,
     clientSecret: process.env.SOBER_SECRET,
-    redirectUri: 'https://sober.skiilaa.me/bot/oauth',
+    redirectUri: process.env.SOBER_REDIRECT,
     debug: false,
     scopes: ['commands']
 }
