@@ -4,7 +4,8 @@
     "botkit-storage-mongo": "^1.0.7",
     "dotenv": "^5.0.1",
     "octonode": "^0.9.1",
-    "raven": "^2.4.2"
+    "raven": "^2.4.2",
+    "tabs-to-spaces": "^0.0.1"
   },
   "name": "soberbot",
   "version": "1.0.0",

@@ -1,11 +1,12 @@
 process.on('uncaughtException', function (err) {
-  console.log('Caught exception: ', err);
+    console.log('Caught exception: ', err);
 });
 
 require('dotenv').config();
 var Botkit = require('botkit');
 var octonode = require('octonode');
 var Raven = require('raven');
+var tabsToSpaces = require('tabs-to-spaces');
 
 if (!process.env.SOBER_ID || !process.env.SOBER_SECRET || !process.env.SOBER_PORT || !process.env.SOBER_TOKEN || !process.env.SOBER_SENTRY) {
     console.log('Error: Specify SOBER_ID, SOBER_SECRET, SOBER_TOKEN, SOBER_PORT and SOBER_SENTRY in environment');
@@ -57,6 +58,36 @@ function messageBuilder(repoTokens, path, lineMargins, textResult) {
     message += `\`\`\`\n${textResult}\n\`\`\``;
 
     return message;
+}
+
+function codeReformat(code) {
+    var newCode = tabsToSpaces(code, 4);
+    var choppedCode = newCode.split("\n");
+    var baseSpaceCount = Infinity;
+    choppedCode.forEach(function(codeLine, lineIndex) {
+        if (codeLine.length == 0) {
+            var newSpaceAmount = 0;
+            if (lineIndex-1 < 0 && choppedCode.length-1 < lineIndex+1) {
+                newSpaceAmount = 0;
+            } else if (lineIndex-1 < 0) {
+                newSpaceAmount = choppedCode[lineIndex+1].search(/\S/);
+                if (newSpaceAmount < 0) newSpaceAmount = 0;
+            } else {
+                newSpaceAmount = choppedCode[lineIndex-1].search(/\S/);
+                if (newSpaceAmount < 0) newSpaceAmount = 0;
+            }
+            choppedCode[lineIndex] = " ".repeat(newSpaceAmount) + codeLine;
+        }
+    });
+    choppedCode.forEach(function(codeLine) {
+        var spaceCount = codeLine.search(/\S|$/);
+        if (spaceCount < baseSpaceCount) // check if it's LOWER to avoid chopping acutal code on lower space levels
+            baseSpaceCount = spaceCount;
+    });
+    if (baseSpaceCount < 0) baseSpaceCount = 0;
+    choppedCode = choppedCode.map(codeLine => codeLine.substr(baseSpaceCount));
+    newCode = choppedCode.join("\n");
+    return newCode;
 }
 
 var controller = Botkit.slackbot(config);
@@ -131,7 +162,7 @@ controller.on('slash_command', function (slashCommand, message) {
                 var textResult = new Buffer(result.content, result.encoding).toString('utf8');
 
                 if (lineMargins) {
-                    textResult = textResult.split("\n").slice(lineMargins[0]-1, lineMargins[1]).join("\n");
+                    textResult = codeReformat(textResult.split("\n").slice(lineMargins[0]-1, lineMargins[1]).join("\n"));
                 }
 
                 slashCommand.replyPublic(message, messageBuilder(repoTokens, filePath, lineMargins, textResult));

@@ -149,6 +149,10 @@ combined-stream@1.0.6, combined-stream@~1.0.5:
   dependencies:
     delayed-stream "~1.0.0"
 
+commander@~2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/commander/-/commander-2.0.0.tgz#d1b86f901f8b64bd941bdeadaf924530393be928"
+
 content-disposition@0.5.2:
   version "0.5.2"
   resolved "https://registry.yarnpkg.com/content-disposition/-/content-disposition-0.5.2.tgz#0cf68bb9ddf5f2be7961c3a85178cb85dba78cb4"
@@ -785,6 +789,12 @@ string_decoder@~1.0.0:
 stringstream@~0.0.5:
   version "0.0.5"
   resolved "https://registry.yarnpkg.com/stringstream/-/stringstream-0.0.5.tgz#4e484cd4de5a0bbbee18e46307710a8a81621878"
+
+tabs-to-spaces@^0.0.1:
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/tabs-to-spaces/-/tabs-to-spaces-0.0.1.tgz#33fb3597fe8882a951e7537c4437a019863a0da6"
+  dependencies:
+    commander "~2.0.0"
 
 timed-out@4.0.1:
   version "4.0.1"
