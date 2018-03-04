@@ -4,12 +4,21 @@ process.on('uncaughtException', function (err) {
 
 require('dotenv').config();
 var Botkit = require('botkit');
-var github = require('octonode').client();
+var octonode = require('octonode');
 var Raven = require('raven');
 
 if (!process.env.SOBER_ID || !process.env.SOBER_SECRET || !process.env.SOBER_PORT || !process.env.SOBER_TOKEN || !process.env.SOBER_SENTRY) {
     console.log('Error: Specify SOBER_ID, SOBER_SECRET, SOBER_TOKEN, SOBER_PORT and SOBER_SENTRY in environment');
     process.exit(1);
+}
+
+if (process.env.SOBER_GHID && process.env.SOBER_GHSECRET) {
+    var github = octonode.client({
+        id: process.env.SOBER_GHID,
+        secret: process.env.SOBER_GHSECRET
+    });
+} else {
+    var github = octonode.client();
 }
 
 var config = {
@@ -28,7 +37,7 @@ if (process.env.SOBER_MONGO) {
 }
 
 Raven.config(process.env.SOBER_SENTRY, {
-    ignoreErrors: ['Not Found']
+    ignoreErrors: ['Not Found', 'No commit found']
 }).install();
 
 function messageBuilder(repoTokens, path, lineMargins, textResult) {

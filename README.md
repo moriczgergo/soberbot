@@ -23,3 +23,5 @@ Sober uses environment variables to be configured. You can also use a `.env` fil
  * SOBER_REDIRECT - OAuth redirect URI
  * SOBER_SENTRY - Sentry DSN for logging (TO-DO: make optional)
  * SOBER_MONGO - Mongo URI (optional, will use JSON file store in `./store/` directory if not present)
+ * SOBER_GHID - GitHub Client ID (optional)
+ * SOBER_GHSECRET - GitHub Client Secret (optional)
