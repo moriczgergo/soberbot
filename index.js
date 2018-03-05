@@ -55,8 +55,6 @@ function messageBuilder(repoTokens, path, lineMargins, textResult) {
 
     message += `${repoTokens[0]}/${repoTokens[1]}:\n`;
 
-    textResult = textResult.replace(/`/g, "\u00AD`\u00AD");
-
     message += `\`\`\`\n${textResult}\n\`\`\``;
 
     return message;
