@@ -8,8 +8,6 @@ var octonode = require('octonode');
 var Raven = require('raven');
 var tabsToSpaces = require('tabs-to-spaces');
 
-const slackMsgCharLimit = 3750;
-
 if (!process.env.SOBER_ID || !process.env.SOBER_SECRET || !process.env.SOBER_PORT || !process.env.SOBER_TOKEN || !process.env.SOBER_SENTRY) {
     console.log('Error: Specify SOBER_ID, SOBER_SECRET, SOBER_TOKEN, SOBER_PORT and SOBER_SENTRY in environment');
     process.exit(1);
@@ -95,23 +93,12 @@ function codeReformat(code) {
 
 function overSplit(messageText) {
     var newMessageText = messageText;
-    if (messageText.length > slackMsgCharLimit) {
-        for (var i = 0; i < Math.floor(messageText.length/slackMsgCharLimit); i++) {
-            newMessageText = messageText.substring(0, i*slackMsgCharLimit+slackMsgCharLimit-4) + "\n``````\n" + messageText.substring(i*slackMsgCharLimit+slackMsgCharLimit-4, messageText.length);
+    if (messageText.length > 4000) {
+        for (var i = 0; i < messageText.length/4000; i++) {
+            newMessageText = messageText.substr(i*4000, 4000-3) + "```\n```" + messageText.substr(i*4000+4000-3, messageText.length);
         }
     }
     return newMessageText;
-}
-
-function overChunk(messageText) {
-    var messageArray = [];
-    if (messageText.length > slackMsgCharLimit) {
-        for (var i = 0; i < Math.ceil(messageText.length/slackMsgCharLimit); i++) {
-            messageArray.push(messageText.substr(i*slackMsgCharLimit, slackMsgCharLimit));
-        }
-    } else
-        messageArray.push(messageText)
-    return messageArray;
 }
 
 var controller = Botkit.slackbot(config);
@@ -194,14 +181,7 @@ controller.on('slash_command', function (slashCommand, message) {
                     textResult = codeReformat(textResult.split("\n").slice(lineMargins[0]-1, lineMargins[1]).join("\n"));
                 }
 
-                var chunkedResult = overChunk(overSplit(messageBuilder(repoTokens, filePath, lineMargins, textResult)));
-
-                slashCommand.replyPublic(message, chunkedResult[0]);
-                if (chunkedResult.length > 1) {
-                    for (var i = 1; i < chunkedResult.length; i++) {
-                        slashCommand.replyPublicDelayed(message, chunkedResult[i]);
-                    }
-                }
+                slashCommand.replyPublic(message, messageBuilder(repoTokens, filePath, lineMargins, textResult));
             });
 
             break;
