@@ -87,6 +87,7 @@ function codeReformat(code) {
     if (baseSpaceCount < 0) baseSpaceCount = 0;
     choppedCode = choppedCode.map(codeLine => codeLine.substr(baseSpaceCount));
     newCode = choppedCode.join("\n");
+//    newCode = newCode.replace(/`/g, "&#96;");
     return newCode;
 }
 
@@ -97,9 +98,9 @@ controller.setupWebserver(process.env.SOBER_PORT, function (err, webserver) {
 
     controller.createOauthEndpoints(controller.webserver, function (err, req, res) {
         if (err) {
-            res.status(500).send('ERROR: ' + err);
+            res.redirect("/error.html");
         } else {
-            res.send('Success!');
+            res.redirect("/success.html");
         }
     });
 });
@@ -137,8 +138,12 @@ controller.on('slash_command', function (slashCommand, message) {
 
             if (tokens.length == 3) {
                 var lineMarginsT = tokens[2].split("-");
-                if (lineMarginsT.length == 2 && tokens[2].match(/\d+-\d+/)) {
+                if (tokens[2].match(/\d+-\d+/)) {
                     lineMargins = [parseInt(lineMarginsT[0]), parseInt(lineMarginsT[1])];
+                } else if (tokens[2].match(/\d+-/)) {
+                    lineMargins = [parseInt(lineMarginsT[0]), -1];
+                } else if (tokens[2].match(/-\d+/)) {
+                    lineMargins = [1, parseInt(lineMarginsT[1])];
                 } else {
                     slashCommand.replyPrivate(message, "Invalid specification of line margin. (ex. \"5-10\")");
                     return;
@@ -162,6 +167,7 @@ controller.on('slash_command', function (slashCommand, message) {
                 var textResult = new Buffer(result.content, result.encoding).toString('utf8');
 
                 if (lineMargins) {
+                    if (lineMargins[1] == -1) lineMargins[1] = textResult.split("\n").length;
                     textResult = codeReformat(textResult.split("\n").slice(lineMargins[0]-1, lineMargins[1]).join("\n"));
                 }
 
