@@ -1,14 +1,11 @@
-process.on('uncaughtException', function (err) {
-    console.log('Caught exception: ', err);
-});
-
 require('dotenv').config();
 var Botkit = require('botkit');
 var octonode = require('octonode');
 var Raven = require('raven');
 var tabsToSpaces = require('tabs-to-spaces');
+var request = require('request');
 
-const slackMsgCharLimit = 3750;
+const slackMsgCharLimit = 3000;
 
 if (!process.env.SOBER_ID || !process.env.SOBER_SECRET || !process.env.SOBER_PORT || !process.env.SOBER_TOKEN || !process.env.SOBER_SENTRY) {
     console.log('Error: Specify SOBER_ID, SOBER_SECRET, SOBER_TOKEN, SOBER_PORT and SOBER_SENTRY in environment');
@@ -29,7 +26,8 @@ var config = {
     clientSecret: process.env.SOBER_SECRET,
     redirectUri: process.env.SOBER_REDIRECT,
     debug: false,
-    scopes: ['commands']
+    scopes: ['commands'],
+    require_delivery: false
 }
 
 if (process.env.SOBER_MONGO) {
@@ -93,24 +91,18 @@ function codeReformat(code) {
     return newCode;
 }
 
-function overSplit(messageText) {
-    var newMessageText = messageText;
-    if (messageText.length > slackMsgCharLimit) {
-        for (var i = 0; i < Math.floor(messageText.length/slackMsgCharLimit); i++) {
-            newMessageText = messageText.substring(0, i*slackMsgCharLimit+slackMsgCharLimit-4) + "\n``````\n" + messageText.substring(i*slackMsgCharLimit+slackMsgCharLimit-4, messageText.length);
-        }
-    }
-    return newMessageText;
-}
-
-function overChunk(messageText) {
+function fullChunk(messageText) {
     var messageArray = [];
     if (messageText.length > slackMsgCharLimit) {
-        for (var i = 0; i < Math.ceil(messageText.length/slackMsgCharLimit); i++) {
-            messageArray.push(messageText.substr(i*slackMsgCharLimit, slackMsgCharLimit));
+        for (var i = 0; i < Math.ceil(messageText.length/(slackMsgCharLimit-4)); i++) {
+            if (i == 0) // first line, no starting ```
+                messageArray.push(messageText.substr(0, slackMsgCharLimit-4) + "\n```");
+            else if (i == Math.ceil(messageText.length/(slackMsgCharLimit-4))-1) // if last line, don't add closing ``` (it's already there.)
+                messageArray.push("```\n" + messageText.substr(i*slackMsgCharLimit-8, slackMsgCharLimit-8));
+            else // inbetween lines, starting & closing ```
+                messageArray.push("```\n" + messageText.substr(i == 1 ? (i*slackMsgCharLimit-4) : (i*slackMsgCharLimit-8), slackMsgCharLimit-8) + "\n```");
         }
-    } else
-        messageArray.push(messageText)
+    }
     return messageArray;
 }
 
@@ -194,12 +186,29 @@ controller.on('slash_command', function (slashCommand, message) {
                     textResult = codeReformat(textResult.split("\n").slice(lineMargins[0]-1, lineMargins[1]).join("\n"));
                 }
 
-                var chunkedResult = overChunk(overSplit(messageBuilder(repoTokens, filePath, lineMargins, textResult)));
+                var chunkedResult = fullChunk(messageBuilder(repoTokens, filePath, lineMargins, textResult));
 
                 slashCommand.replyPublic(message, chunkedResult[0]);
                 if (chunkedResult.length > 1) {
                     for (var i = 1; i < chunkedResult.length; i++) {
-                        slashCommand.replyPublicDelayed(message, chunkedResult[i]);
+                        var replyDone = false;
+                        request({
+                            uri: message.response_url,
+                            method: 'POST',
+                            json: { // add thread_ts for threads in the future
+                                text: chunkedResult[i],
+                                channel: message.channel,
+                                to: message.user,
+                                response_type: 'in_channel'
+                            }
+                        }, function(err, resp, body) {
+                            if (err) {
+                                throw err;
+                            } else {
+                                replyDone = true;
+                            }
+                        });
+                        require('deasync').loopWhile(function() { return !replyDone; });
                     }
                 }
             });

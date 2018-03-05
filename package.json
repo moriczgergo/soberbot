@@ -2,9 +2,11 @@
   "dependencies": {
     "botkit": "0.0.5",
     "botkit-storage-mongo": "^1.0.7",
+    "deasync": "^0.1.12",
     "dotenv": "^5.0.1",
     "octonode": "^0.9.1",
     "raven": "^2.4.2",
+    "request": "^2.83.0",
     "tabs-to-spaces": "^0.0.1"
   },
   "name": "soberbot",
