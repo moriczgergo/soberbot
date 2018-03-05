@@ -55,6 +55,8 @@ function messageBuilder(repoTokens, path, lineMargins, textResult) {
 
     message += `${repoTokens[0]}/${repoTokens[1]}:\n`;
 
+    textResult = textResult.replace(/`/g, "\u00AD`\u00AD");
+
     message += `\`\`\`\n${textResult}\n\`\`\``;
 
     return message;
@@ -102,7 +104,8 @@ function fullChunk(messageText) {
             else // inbetween lines, starting & closing ```
                 messageArray.push("```\n" + messageText.substr(i == 1 ? (i*slackMsgCharLimit-4) : (i*slackMsgCharLimit-8), slackMsgCharLimit-8) + "\n```");
         }
-    }
+    } else
+        messageArray.push(messageText);
     return messageArray;
 }
 
@@ -202,10 +205,9 @@ controller.on('slash_command', function (slashCommand, message) {
                                 response_type: 'in_channel'
                             }
                         }, function(err, resp, body) {
+                            replyDone = true;
                             if (err) {
-                                throw err;
-                            } else {
-                                replyDone = true;
+                                Raven.captureException(err, { extra: errctx, tags: { component: "delayMessage" } });
                             }
                         });
                         require('deasync').loopWhile(function() { return !replyDone; });
