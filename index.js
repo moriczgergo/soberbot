@@ -5,10 +5,15 @@ var Raven = require('raven');
 var tabsToSpaces = require('tabs-to-spaces');
 var request = require('request');
 
+var debugStat = process.env.SOBER_SENTRY;
+
+if (debugStat)
+    console.log("Sentry logging enabled.");
+
 const slackMsgCharLimit = 3000;
 
-if (!process.env.SOBER_ID || !process.env.SOBER_SECRET || !process.env.SOBER_PORT || !process.env.SOBER_TOKEN || !process.env.SOBER_SENTRY) {
-    console.log('Error: Specify SOBER_ID, SOBER_SECRET, SOBER_TOKEN, SOBER_PORT and SOBER_SENTRY in environment');
+if (!process.env.SOBER_ID || !process.env.SOBER_SECRET || !process.env.SOBER_PORT || !process.env.SOBER_TOKEN) {
+    console.log('Error: Specify SOBER_ID, SOBER_SECRET, SOBER_TOKEN, SOBER_PORT in environment');
     process.exit(1);
 }
 
@@ -37,9 +42,11 @@ if (process.env.SOBER_MONGO) {
     config.json_file_store = './store/'; // store user data in a simple JSON format
 }
 
-Raven.config(process.env.SOBER_SENTRY, {
-    ignoreErrors: ['Not Found', 'No commit found']
-}).install();
+if (debugStat) {
+    Raven.config(process.env.SOBER_SENTRY, {
+        ignoreErrors: ['Not Found', 'No commit found']
+    }).install();
+}
 
 function messageBuilder(repoTokens, path, lineMargins, textResult) {
     var message = "";
@@ -177,7 +184,10 @@ controller.on('slash_command', function (slashCommand, message) {
             github.repo(`${repoTokens[0]}/${repoTokens[1]}`).contents(filePath, repoTokens[2] ? repoTokens[2] : "master", function(err, result) {
                 if (err) {
                     slashCommand.replyPrivate(message, `${err}`);
-                    Raven.captureException(err, { extra: errctx });
+                    if (debugStat)
+                         Raven.captureException(err, { extra: errctx });
+                    else
+                         console.log(err);
                     return;
                 }
                 var textResult = new Buffer(result.content, result.encoding).toString('utf8');
@@ -205,7 +215,10 @@ controller.on('slash_command', function (slashCommand, message) {
                         }, function(err, resp, body) {
                             replyDone = true;
                             if (err) {
-                                Raven.captureException(err, { extra: errctx, tags: { component: "delayMessage" } });
+                                if (debugStat)
+                                    Raven.captureException(err, { extra: errctx, tags: { component: "delayMessage" } });
+                                else
+                                    console.log(err);
                             }
                         });
                         require('deasync').loopWhile(function() { return !replyDone; });
