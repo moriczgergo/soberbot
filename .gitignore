@@ -1,0 +1,4 @@
+img/
+store/
+node_modules/
+.env
